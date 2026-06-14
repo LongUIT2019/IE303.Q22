@@ -1,6 +1,6 @@
 # Hướng dẫn khởi tạo và thiết lập Firebase Firestore Database
 
-Khi bạn đang ở link (Firebase Console > Firestore Database):
+Khi đang ở link (Firebase Console > Firestore Database):
 `https://console.firebase.google.com/u/2/project/dqn-ee89b/firestore/databases/-default-/data`
 
 Dưới đây là các thao tác chi tiết:
