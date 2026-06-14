@@ -1,1 +1,3 @@
+target/
+target/classes/firebase-key.json
 src/main/resources/firebase-key.json
