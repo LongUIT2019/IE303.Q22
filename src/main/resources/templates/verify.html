@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Account</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .letter-spacing-custom {
+            letter-spacing: 0.5em;
+        }
+
+        body {
+            background-color: #f0f4f8;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen">
+
+    <div
+        class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md transform transition-all hover:scale-105 duration-300">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-extrabold text-blue-900 mb-2">Verify Account</h1>
+            <p class="text-gray-500">We've sent a 4-digit OTP to your email.</p>
+        </div>
+
+        <div th:if="${error}" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded" role="alert">
+            <p th:text="${error}"></p>
+        </div>
+
+        <div th:if="${success}" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded"
+            role="alert">
+            <p th:text="${success}"></p>
+        </div>
+
+        <form th:action="@{/verify}" method="post" class="space-y-6">
+            <!-- Input cho email (loại input ẩn hoặc read-only tùy logic) -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" id="email" name="email" th:value="${email}"
+                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    th:classappend="${email != null && !email.isEmpty() ? ' bg-gray-50 text-gray-500 cursor-not-allowed' : ' bg-white'}"
+                    th:readonly="${email != null && !email.isEmpty()}" required>
+            </div>
+
+            <div>
+                <label for="otpCode" class="block text-sm font-medium text-gray-700">4-Digit OTP Code</label>
+                <input type="text" id="otpCode" name="otpCode" maxlength="4" placeholder="••••"
+                    class="mt-1 block w-full px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm text-center text-2xl font-bold letter-spacing-custom focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-lg"
+                    required autofocus autocomplete="off">
+            </div>
+
+            <div>
+                <button type="submit"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                    Verify My Account
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-6 text-center">
+            <a th:href="@{/login}" class="text-sm text-blue-600 hover:text-blue-500 font-medium">Return to login</a>
+        </div>
+    </div>
+
+</body>
+
+</html>

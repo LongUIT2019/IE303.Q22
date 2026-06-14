@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dispatch History</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: #38bdf8;
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .REQUESTED {
+            background: #eab308;
+            color: #000;
+        }
+
+        .ACCEPTED {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .COMPLETED {
+            background: #10b981;
+            color: #fff;
+        }
+
+        a.back {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #94a3b8;
+            text-decoration: none;
+        }
+
+        a.back:hover {
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/" class="back"><i class="fa-solid fa-arrow-left"></i> Quay lại Trang Chủ (Map)</a>
+
+    <h1><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Chuyến Đi</h1>
+
+    <div th:if="${#lists.isEmpty(rides)}">
+        <p>Bạn chưa có chuyến đi nào.</p>
+    </div>
+
+    <div class="grid">
+        <div class="card" th:each="ride : ${rides}">
+            <span class="status" th:classappend="${ride.status}" th:text="${ride.status}"></span>
+            <p><strong>Khách:</strong> <span th:text="${ride.customerName}"></span></p>
+            <p><strong>Tài Xế:</strong> <span th:text="${ride.driverId ?: 'Đang tìm...'}"></span></p>
+            <p><strong>Giá dự kiến:</strong> <span th:text="${ride.estimatedPrice}"></span> VND</p>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 10px;">
+                Cấp độ ML: <span th:text="${ride.mlMultiplier}"></span>x
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

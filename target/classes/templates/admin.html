@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trung Tâm Điều Phối AI | Admin Dashboard</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background: #0f172a;
+            color: white;
+        }
+
+        #sidebar {
+            width: 380px;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        #sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        #map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-top: 0;
+            margin-bottom: 5px;
+        }
+
+        .user-panel {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            background: transparent;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: white;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 15px;
+        }
+        .page-btn {
+            padding: 5px 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .page-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .page-btn:hover:not(.active) {
+            background: #f1f5f9;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .control-panel label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        /* Premium Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #3b82f6;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(24px);
+        }
+
+        .btn-live {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-live:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Realtime list */
+        .ride-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .ride-item {
+            margin-bottom: 10px;
+            padding: 15px;
+            background: rgba(51, 65, 85, 0.5);
+            border-radius: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .ride-item .price {
+            color: #10b981;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .ai-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(244, 63, 94, 0.2);
+            color: #f43f5e;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        /* NEW: System Stats and Buttons */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #38bdf8;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .btn-manage {
+            width: 100%;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #38bdf8;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 600;
+        }
+
+        .btn-manage:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+        /* Modal Styles */
+        /* Fix SWAL Z-index & Premium Style */
+        .swal2-container {
+            z-index: 10000 !important;
+        }
+        .swal2-popup {
+            background: #1e293b !important;
+            color: white !important;
+            border-radius: 20px !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        .swal2-title { color: white !important; font-size: 20px !important; }
+        .swal2-input {
+            background: rgba(15, 23, 42, 0.5) !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            color: white !important;
+            border-radius: 10px !important;
+            font-size: 14px !important;
+            height: 45px !important;
+            padding-left: 15px !important;
+        }
+        .swal2-input:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        }
+        .swal2-confirm { border-radius: 10px !important; padding: 12px 30px !important; font-weight: 700 !important; }
+        .swal2-cancel { border-radius: 10px !important; padding: 12px 30px !important; }
+        .swal2-validation-message { background: #334155 !important; color: #fb7185 !important; }
+
+        /* Floating Label Styles */
+        .float-container {
+            position: relative;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .float-container input {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 12px 15px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+        }
+        .float-container label {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 14px;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+        .float-container input:focus, .float-container input:not(:placeholder-shown) {
+            border-color: #3b82f6;
+            padding-top: 20px;
+            padding-bottom: 4px;
+        }
+        .float-container input:focus + label, .float-container input:not(:placeholder-shown) + label {
+            top: 10px;
+            font-size: 11px;
+            color: #3b82f6;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            width: 600px;
+            max-width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+
+        th {
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        .sidebar-item {
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h2 class="header-title"><i class="fa-solid fa-server"></i> ADMIN DISPATCH AI</h2>
+
+        <div class="user-panel">
+            <div>
+                <i class="fa-regular fa-circle-user" style="color: #3b82f6;"></i>
+                Xin chào, <strong sec:authentication="name">Admin</strong>
+            </div>
+            <form th:action="@{/logout}" method="post" style="margin: 0;">
+                <button type="submit" class="logout-btn"><i class="fa-solid fa-power-off"></i> Thoát</button>
+            </form>
+        </div>
+
+        <!-- Stats Grid: loaded from API -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTripsStat"><i class="fa-solid fa-spinner fa-spin" style="font-size:16px;"></i></div>
+                <div class="stat-label">Tổng Chuyến</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #10b981;" id="activeTaxisStat"><i class="fa-solid fa-spinner fa-spin" style="font-size:16px;"></i></div>
+                <div class="stat-label">Xe Hoạt Động</div>
+            </div>
+        </div>
+
+        <!-- NEW: Management Buttons -->
+        <div style="margin-bottom: 20px;">
+            <div class="sidebar-item" onclick="openModal('customerModal')"><i class="fa-solid fa-users"></i> Khách Hàng</div>
+            <div class="sidebar-item" onclick="openModal('driverModal')"><i class="fa-solid fa-id-card"></i> Tài Xế</div>
+            <div class="sidebar-item" onclick="openModal('adminModal')"><i class="fa-solid fa-user-shield"></i> Quản Lý Admin</div>
+            <div class="sidebar-item" onclick="openModal('rideModal')"><i class="fa-solid fa-route"></i> Quản Lý Chuyến Đi</div>
+        </div>
+
+        <!-- NEW: System Health Monitor -->
+        <div class="card control-panel" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+            <h3 style="color: #10b981;"><i class="fa-solid fa-heart-pulse"></i> Trạng Thái Hệ Thống</h3>
+            <div style="font-size: 13px; color: #94a3b8; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                <span>AI Prediction Engine</span> <span style="color: #10b981;"><i class="fa-solid fa-circle-check"></i> Online</span>
+            </div>
+            <div style="font-size: 13px; color: #94a3b8; display: flex; justify-content: space-between;">
+                <span>Server Load</span> <span style="color: #f59e0b;">Moderate (45%)</span>
+            </div>
+        </div>
+
+        <div class="card control-panel">
+            <h3><i class="fa-solid fa-sliders"></i> Môi Trình Mô Phỏng</h3>
+            <label>
+                <span><i class="fa-solid fa-cloud-rain"></i> Trời Đang Mưa</span>
+                <label class="switch">
+                    <input type="checkbox" id="chkRain" onchange="fetchDemandHeatmap()">
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <label>
+                <span><i class="fa-solid fa-music"></i> Sự Kiện Lớn Nhạc Hội</span>
+                <label class="switch">
+                    <input type="checkbox" id="chkEvent" onchange="fetchDemandHeatmap()">
+                    <span class="slider"></span>
+                </label>
+            </label>
+            <button class="btn-live" onclick="fetchDemandHeatmap()"><i class="fa-solid fa-bolt"></i> Cập Nhật
+                Heatmap</button>
+        </div>
+
+        <div class="card ride-list" style="flex:1;">
+            <h3><i class="fa-solid fa-list"></i> Các Chuyến Xe Realtime</h3>
+            <div id="ridesContainer">
+                <!-- Data from API -->
+                <div style="color: #94a3b8; font-size: 13px; text-align: center; margin-top: 20px;">Đang dò tìm
+                    Firebase...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <!-- NEW: Modals -->
+    <div class="modal-overlay" id="customerModal">
+        <div class="modal-content" style="width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-users"></i> Quản Lý Khách Hàng</h3>
+                <button class="close-btn" onclick="closeModal('customerModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="customerSearch" class="swal2-input" style="margin:0; flex:1;" placeholder="Tìm theo tên, email, sđt..." oninput="renderCustomerTable()">
+                    <button class="btn-live" style="margin:0; width:auto; padding:0 20px;" onclick="addUser('ROLE_CUSTOMER')"><i class="fa-solid fa-plus"></i> Thêm mới</button>
+                </div>
+                <table>
+                    <thead><tr><th>Username</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Thao tác</th></tr></thead>
+                    <tbody id="customerTableBody">
+                        <tr><td colspan="5" style="text-align:center; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                    </tbody>
+                </table>
+                <div id="customerPagination" class="pagination-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="driverModal">
+        <div class="modal-content" style="width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-id-card"></i> Quản Lý Tài Xế</h3>
+                <button class="close-btn" onclick="closeModal('driverModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="driverSearch" class="swal2-input" style="margin:0; flex:1;" placeholder="Tìm theo tên, email, sđt..." oninput="renderDriverTable()">
+                    <button class="btn-live" style="margin:0; width:auto; padding:0 20px;" onclick="addUser('ROLE_DRIVER')"><i class="fa-solid fa-plus"></i> Thêm mới</button>
+                </div>
+                <table>
+                    <thead><tr><th>Username</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Thao tác</th></tr></thead>
+                    <tbody id="driverTableBody">
+                        <tr><td colspan="5" style="text-align:center; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                    </tbody>
+                </table>
+                <div id="driverPagination" class="pagination-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Quản lý Admin -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-content" style="width: 800px; max-width: 95%;">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-user-shield"></i> Quản lý Admin</h3>
+                <button class="close-btn" onclick="closeModal('adminModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="adminSearch" class="swal2-input" style="margin:0; flex:1;" placeholder="Tìm theo tên, email..." oninput="renderAdminTable()">
+                    <button class="btn-live" style="margin:0; width:auto; padding:0 20px;" onclick="addUser('ROLE_ADMIN')"><i class="fa-solid fa-plus"></i> Thêm Admin</button>
+                </div>
+                <table>
+                    <thead><tr><th>Username</th><th>Họ tên</th><th>Email</th><th>SĐT</th><th>Thao tác</th></tr></thead>
+                    <tbody id="adminTableBody">
+                        <tr><td colspan="5" style="text-align:center; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                    </tbody>
+                </table>
+                <div id="adminPagination" class="pagination-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Quản lý Chuyến đi -->
+    <div class="modal-overlay" id="rideModal">
+        <div class="modal-content" style="width: 1000px;">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fa-solid fa-route"></i> Quản Lý Chuyến Đi</h3>
+                <button class="close-btn" onclick="closeModal('rideModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                    <input type="text" id="rideSearch" class="swal2-input" style="margin:0; flex:1;" placeholder="Tìm theo ID, Khách hàng, Tài xế, Khu vực..." oninput="renderRideTable()">
+                    <select id="rideStatusFilter" class="swal2-input" style="margin:0; width:180px;" onchange="renderRideTable()">
+                        <option value="ALL">Tất cả trạng thái</option>
+                        <option value="REQUESTED">Đang chờ</option>
+                        <option value="ACCEPTED">Đã nhận</option>
+                        <option value="ARRIVED">Đã đến</option>
+                        <option value="PICKED_UP">Đang chở</option>
+                        <option value="COMPLETED">Hoàn thành</option>
+                        <option value="CANCELLED">Đã hủy</option>
+                    </select>
+                </div>
+                <table>
+                    <thead><tr><th>Mã chuyến</th><th>Khách hàng</th><th>Tài xế</th><th>Khu vực</th><th>Giá</th><th>Trạng thái</th></tr></thead>
+                    <tbody id="rideTableBody">
+                        <tr><td colspan="6" style="text-align:center; color:#94a3b8;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                    </tbody>
+                </table>
+                <div id="ridePagination" class="pagination-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <input type="hidden" id="currentAdminName" th:value="${currentAdmin}">
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script th:inline="none">
+        // NEW: Modal functions
+        let rawCustomers = [], rawDrivers = [], rawAdmins = [], rawRides = [];
+        let customerPage = 1, driverPage = 1, adminPage = 1, ridePage = 1;
+        const pageSize = 8;
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+            if (id === 'customerModal') loadCustomerTable();
+            if (id === 'driverModal') loadDriverTable();
+            if (id === 'adminModal') loadAdminTable();
+            if (id === 'rideModal') loadRideTable();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('active');
+            }
+        }
+
+        // Load real stats + tables from API
+        async function loadAdminStats() {
+            try {
+                const res = await fetch('/api/rides');
+                const rides = await res.json();
+
+                // Total trips
+                document.getElementById('totalTripsStat').innerText = rides.length.toLocaleString();
+
+                // Active taxis = count drivers with online status = true
+                const dRes = await fetch('/api/admin/drivers');
+                const allDrivers = await dRes.json();
+                const onlineCount = allDrivers.filter(d => d.online).length;
+                document.getElementById('activeTaxisStat').innerText = onlineCount;
+
+                // Realtime list in sidebar
+                let sidebarHtml = '';
+                rides.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 5).forEach(r => {
+                    const statusText = getStatusText(r.status, r.driverId);
+                    const statusColor = getStatusColor(r.status, r.driverId);
+                    sidebarHtml += `
+                        <div class="ride-card">
+                            <div style="display:flex; justify-content:space-between;">
+                                <strong style="color:#f8fafc; font-size:13px;">Mã: ${r.id.substring(0,6)}...</strong>
+                                <span style="color:${statusColor}; font-size:11px; font-weight:700;">${statusText}</span>
+                            </div>
+                            <div style="color:#94a3b8; font-size:12px; margin-top:4px;">${r.customerName} &rarr; ${r.driverId || 'Đang tìm xe...'}</div>
+                        </div>`;
+                });
+                document.getElementById('ridesContainer').innerHTML = sidebarHtml || '<div style="text-align:center; color:#94a3b8; font-size:12px;">Chưa có chuyến xe nào</div>';
+            } catch(e) {
+                console.error('Admin stats error', e);
+            }
+        }
+
+        async function loadCustomerTable() {
+            try {
+                const res = await fetch('/api/admin/customers');
+                rawCustomers = await res.json();
+                customerPage = 1;
+                renderCustomerTable();
+            } catch(e) {
+                document.getElementById('customerTableBody').innerHTML = '<tr><td colspan="5" style="color:red;">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderCustomerTable() {
+            const query = document.getElementById('customerSearch').value.toLowerCase();
+            const filtered = rawCustomers.filter(u => 
+                u.username.toLowerCase().includes(query) || 
+                (u.email && u.email.toLowerCase().includes(query)) ||
+                (u.phoneNumber && u.phoneNumber.includes(query))
+            );
+            
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const start = (customerPage - 1) * pageSize;
+            const data = filtered.slice(start, start + pageSize);
+
+            const rows = data.map(u => `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.fullName || '-'}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>${u.phoneNumber || '-'}</td>
+                    <td>
+                        <button onclick="editUser('${u.username}')" style="background:none; border:none; color:#3b82f6; cursor:pointer; margin-right:8px;"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteUser('${u.username}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+
+            document.getElementById('customerTableBody').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">Không tìm thấy kết quả</td></tr>';
+            renderPagination('customerPagination', totalPages, customerPage, (p) => { customerPage = p; renderCustomerTable(); });
+        }
+
+        async function loadDriverTable() {
+            try {
+                const res = await fetch('/api/admin/drivers');
+                rawDrivers = await res.json();
+                driverPage = 1;
+                renderDriverTable();
+            } catch(e) {
+                document.getElementById('driverTableBody').innerHTML = '<tr><td colspan="5" style="color:red;">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderDriverTable() {
+            const query = document.getElementById('driverSearch').value.toLowerCase();
+            const filtered = rawDrivers.filter(u => 
+                u.username.toLowerCase().includes(query) || 
+                (u.email && u.email.toLowerCase().includes(query)) ||
+                (u.phoneNumber && u.phoneNumber.includes(query))
+            );
+            
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const start = (driverPage - 1) * pageSize;
+            const data = filtered.slice(start, start + pageSize);
+
+            const rows = data.map(u => `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.fullName || '-'}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>${u.phoneNumber || '-'}</td>
+                    <td>
+                        <button onclick="editUser('${u.username}')" style="background:none; border:none; color:#3b82f6; cursor:pointer; margin-right:8px;"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteUser('${u.username}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+
+            document.getElementById('driverTableBody').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">Không tìm thấy kết quả</td></tr>';
+            renderPagination('driverPagination', totalPages, driverPage, (p) => { driverPage = p; renderDriverTable(); });
+        }
+
+        async function loadAdminTable() {
+            try {
+                const res = await fetch('/api/admin/admins');
+                rawAdmins = await res.json();
+                adminPage = 1;
+                renderAdminTable();
+            } catch(e) {
+                document.getElementById('adminTableBody').innerHTML = '<tr><td colspan="5" style="color:red;">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderAdminTable() {
+            const query = document.getElementById('adminSearch').value.toLowerCase();
+            const filtered = rawAdmins.filter(u => 
+                u.username.toLowerCase().includes(query) || 
+                (u.email && u.email.toLowerCase().includes(query)) ||
+                (u.fullName && u.fullName.toLowerCase().includes(query))
+            );
+            
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const start = (adminPage - 1) * pageSize;
+            const data = filtered.slice(start, start + pageSize);
+
+            const rows = data.map(u => `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.fullName || '-'}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>${u.phoneNumber || '-'}</td>
+                    <td>
+                        <button onclick="editUser('${u.username}')" style="background:none; border:none; color:#3b82f6; cursor:pointer; margin-right:8px;"><i class="fa-solid fa-pen-to-square"></i></button>
+                        ${u.username !== document.getElementById('currentAdminName').value ? `<button onclick="deleteUser('${u.username}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </td>
+                </tr>`).join('');
+
+            document.getElementById('adminTableBody').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;">Không tìm thấy kết quả</td></tr>';
+            renderPagination('adminPagination', totalPages, adminPage, (p) => { adminPage = p; renderAdminTable(); });
+        }
+
+        async function loadRideTable() {
+            try {
+                const res = await fetch('/api/rides');
+                rawRides = await res.json();
+                ridePage = 1;
+                renderRideTable();
+            } catch(e) {
+                document.getElementById('rideTableBody').innerHTML = '<tr><td colspan="6" style="color:red;">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderRideTable() {
+            const query = document.getElementById('rideSearch').value.toLowerCase();
+            const status = document.getElementById('rideStatusFilter').value;
+            
+            let filtered = rawRides;
+            if (status !== 'ALL') filtered = filtered.filter(r => r.status === status);
+            if (query) {
+                filtered = filtered.filter(r => 
+                    (r.id && r.id.toLowerCase().includes(query)) ||
+                    (r.customerName && r.customerName.toLowerCase().includes(query)) ||
+                    (r.driverId && r.driverId.toLowerCase().includes(query)) ||
+                    (r.zone && r.zone.toLowerCase().includes(query))
+                );
+            }
+
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const start = (ridePage - 1) * pageSize;
+            const data = filtered.slice(start, start + pageSize);
+
+            const rows = data.map(r => `
+                <tr>
+                    <td><small>${r.id.substring(0,8)}...</small></td>
+                    <td>${r.customerName}</td>
+                    <td>${r.driverId || '<i>Chưa có</i>'}</td>
+                    <td>${r.zone || '-'}</td>
+                    <td>${r.estimatedPrice ? r.estimatedPrice.toLocaleString() + ' đ' : '-'}</td>
+                    <td><span class="status-badge" style="background:${getStatusColor(r.status, r.driverId)}">${getStatusText(r.status, r.driverId)}</span></td>
+                </tr>`).join('');
+
+            document.getElementById('rideTableBody').innerHTML = rows || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;">Không tìm thấy chuyến đi</td></tr>';
+            renderPagination('ridePagination', totalPages, ridePage, (p) => { ridePage = p; renderRideTable(); });
+        }
+
+        function getStatusText(s, driverId) {
+            // Sửa lỗi: có tài xế nhận mà vẫn hiển thị "Đang chờ"
+            if (s === 'REQUESTED' && driverId) return 'Đã nhận';
+
+            const m = { 
+                'REQUESTED': 'Đang chờ', 
+                'ACCEPTED': 'Đã nhận', 
+                'ARRIVED': 'Đã đến', 
+                'PICKED_UP': 'Đang chở', 
+                'COMPLETED': 'Hoàn thành', 
+                'CANCELLED': 'Đã hủy' 
+            };
+            return m[s] || s;
+        }
+
+        function getStatusColor(s, driverId) {
+            if (s === 'REQUESTED' && driverId) return '#0ea5e9'; // ACCEPTED color
+
+            const m = { 
+                'REQUESTED':'#94a3b8', 
+                'ACCEPTED':'#0ea5e9', 
+                'ARRIVED':'#f59e0b', 
+                'PICKED_UP':'#3b82f6', 
+                'COMPLETED':'#10b981', 
+                'CANCELLED':'#ef4444' 
+            };
+            return m[s] || '#000';
+        }
+
+        function renderPagination(containerId, totalPages, currentPage, onPageClick) {
+            const container = document.getElementById(containerId);
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+            
+            let html = '';
+            for (let i = 1; i <= totalPages; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="window.onPageClickWrapper('${containerId}', ${i})">${i}</button>`;
+            }
+            container.innerHTML = html;
+            window[`${containerId}_cb`] = onPageClick;
+        }
+
+        window.onPageClickWrapper = (id, page) => {
+            if (window[`${id}_cb`]) window[`${id}_cb`](page);
+        };
+
+        async function editUser(username) {
+            try {
+                // Ưu tiên tìm trong dữ liệu thô đã tải
+                let user = rawCustomers.find(u => u.username === username) || 
+                           rawDrivers.find(u => u.username === username) ||
+                           rawAdmins.find(u => u.username === username);
+
+                // Nếu chưa có (hiếm khi), fetch từ các API
+                if (!user) {
+                    const cRes = await fetch('/api/admin/customers');
+                    const dRes = await fetch('/api/admin/drivers');
+                    const aRes = await fetch('/api/admin/admins');
+                    const all = [...(await cRes.json()), ...(await dRes.json()), ...(await aRes.json())];
+                    user = all.find(u => u.username === username);
+                }
+
+                if (!user) {
+                    Swal.fire('Lỗi', 'Không tìm thấy thông tin người dùng!', 'error');
+                    return;
+                }
+
+                const { value: formValues } = await Swal.fire({
+                    title: `Chỉnh sửa hồ sơ`,
+                    html: `
+                        <div class="float-container">
+                            <input id="swal-username" type="text" value="${user.username}" readonly style="background: rgba(15,23,42,0.8); cursor: not-allowed; color: #64748b;" placeholder=" ">
+                            <label>Tên đăng nhập (Username - Không thể đổi)</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="swal-fullname" type="text" value="${user.fullName || ''}" placeholder=" ">
+                            <label>Họ và tên</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="swal-email" type="email" value="${user.email || ''}" placeholder=" ">
+                            <label>Email</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="swal-phone" type="text" value="${user.phoneNumber || ''}" placeholder=" ">
+                            <label>Số điện thoại</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="swal-password" type="password" placeholder=" ">
+                            <label>Mật khẩu mới (Để trống nếu không đổi)</label>
+                        </div>
+                    `,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: 'Cập nhật ngay',
+                    cancelButtonText: 'Đóng',
+                    confirmButtonColor: '#3b82f6',
+                    preConfirm: () => {
+                        return {
+                            fullName: document.getElementById('swal-fullname').value,
+                            email: document.getElementById('swal-email').value,
+                            phoneNumber: document.getElementById('swal-phone').value,
+                            password: document.getElementById('swal-password').value
+                        }
+                    }
+                });
+
+                if (formValues) {
+                    const putRes = await fetch(`/api/admin/users/${username}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formValues)
+                    });
+
+                    if (putRes.ok) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: 'Hồ sơ đã được cập nhật!', background: '#1e293b', color: '#fff' });
+                        loadCustomerTable();
+                        loadDriverTable();
+                        loadAdminTable();
+                    } else {
+                        const err = await putRes.text();
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: err || 'Không thể cập nhật thông tin.', background: '#1e293b', color: '#fff' });
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Lỗi!', 'Có lỗi xảy ra khi tải thông tin.', 'error');
+            }
+        }
+
+        async function addUser(role) {
+            const roleName = role === 'ROLE_DRIVER' ? 'Tài xế' : 'Khách hàng';
+            const { value: formValues } = await Swal.fire({
+                title: `Thêm ${roleName} mới`,
+                html: `
+                    <div class="float-container">
+                        <input id="add-username" type="text" placeholder=" ">
+                        <label>Tên đăng nhập (Username)</label>
+                    </div>
+                    <div class="float-container">
+                        <input id="add-password" type="password" placeholder=" ">
+                        <label>Mật khẩu</label>
+                    </div>
+                    <div class="float-container">
+                        <input id="add-fullname" type="text" placeholder=" ">
+                        <label>Họ và tên</label>
+                    </div>
+                    <div class="float-container">
+                        <input id="add-email" type="email" placeholder=" ">
+                        <label>Email</label>
+                    </div>
+                    <div class="float-container">
+                        <input id="add-phone" type="text" placeholder=" ">
+                        <label>Số điện thoại</label>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Tạo tài khoản',
+                cancelButtonText: 'Hủy',
+                confirmButtonColor: '#10b981',
+                preConfirm: () => {
+                    const username = document.getElementById('add-username').value;
+                    const password = document.getElementById('add-password').value;
+                    if (!username || !password) {
+                        Swal.showValidationMessage('Vui lòng nhập Username và Mật khẩu');
+                        return false;
+                    }
+                    return {
+                        username,
+                        password,
+                        fullName: document.getElementById('add-fullname').value,
+                        email: document.getElementById('add-email').value,
+                        phoneNumber: document.getElementById('add-phone').value,
+                        role: role
+                    }
+                }
+            });
+
+            if (formValues) {
+                const res = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formValues)
+                });
+
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Thành công', text: `Đã tạo ${roleName} mới!`, background: '#1e293b', color: '#fff' });
+                    if (role === 'ROLE_CUSTOMER') loadCustomerTable();
+                    else if (role === 'ROLE_DRIVER') loadDriverTable();
+                    else loadAdminTable();
+                } else {
+                    const err = await res.text();
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err || 'Không thể tạo tài khoản.', background: '#1e293b', color: '#fff' });
+                }
+            }
+        }
+
+        async function deleteUser(username) {
+            const currentAdmin = document.getElementById('currentAdminName').value;
+            if (username === currentAdmin) {
+                Swal.fire('Cảnh báo', 'Bạn không thể tự xóa chính mình!', 'warning');
+                return;
+            }
+
+            const { isConfirmed } = await Swal.fire({
+                title: 'Xác nhận xóa?',
+                text: `Bạn có chắc muốn xóa tài khoản ${username}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Xóa ngay',
+                cancelButtonText: 'Hủy'
+            });
+
+            if (isConfirmed) {
+                const res = await fetch(`/api/admin/users/${username}`, { method: 'DELETE' });
+                if (res.ok) {
+                    Swal.fire({ icon: 'success', title: 'Đã xóa!', text: 'Người dùng đã được gỡ khỏi hệ thống.', background: '#1e293b', color: '#fff' });
+                    loadCustomerTable();
+                    loadDriverTable();
+                    loadAdminTable();
+                } else {
+                    const err = await res.text();
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: err || 'Không thể xóa người dùng.', background: '#1e293b', color: '#fff' });
+                }
+            }
+        }
+
+        loadAdminStats();
+        setInterval(loadAdminStats, 5000);
+
+        // Dark mode map
+        let map = L.map('map').setView([10.762622, 106.660172], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        // Hardcoded Zones to match PricingService logic -> 6 Zones Grid
+        let zones = {
+            "Zone_NW": { bounds: [[10.80, 106.50], [10.90, 106.66]], color: "blue", rect: null },
+            "Zone_NE": { bounds: [[10.80, 106.66], [10.90, 106.85]], color: "blue", rect: null },
+            "Zone_CW": { bounds: [[10.75, 106.50], [10.80, 106.66]], color: "blue", rect: null },
+            "Zone_CE": { bounds: [[10.75, 106.66], [10.80, 106.85]], color: "red", rect: null },
+            "Zone_SW": { bounds: [[10.60, 106.50], [10.75, 106.66]], color: "blue", rect: null },
+            "Zone_SE": { bounds: [[10.60, 106.66], [10.75, 106.85]], color: "blue", rect: null }
+        };
+
+        // Khởi tạo các Reactangle mờ biểu diễn khu vực
+        for (let z in zones) {
+            zones[z].rect = L.rectangle(zones[z].bounds, { color: zones[z].color, weight: 1, fillOpacity: 0.1 }).addTo(map);
+        }
+
+        // Lấy dữ liệu Heatmap Demand prediction từ AI
+        async function fetchDemandHeatmap() {
+            const btn = document.querySelector('.btn-live');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang Cập Nhật...';
+            btn.disabled = true;
+
+            try {
+                const isRain = document.getElementById('chkRain').checked;
+                const isEvent = document.getElementById('chkEvent').checked;
+
+                // Gọi Endpoint ML Predict
+                const res = await fetch(`/api/ml/predict/current?isRain=${isRain}&isEvent=${isEvent}`);
+                const data = await res.json();
+
+                // Cập nhật Heatmap độ mờ (Opacity) dựa trên số xe dự báo
+                for (let z in data) {
+                    if (zones[z]) {
+                        const predictedCount = data[z];
+                        let op = Math.min(predictedCount / 100.0, 0.8); // Scale ra fillOpacity (max 0.8)
+                        op = Math.max(op, 0.1); // min 0.1
+
+                        // Nhu cầu cao -> Màu nóng hơn (Đỏ)
+                        let c = predictedCount > 50 ? "#ef4444" : (predictedCount > 20 ? "#f97316" : "#3b82f6");
+
+                        zones[z].rect.setStyle({ fillOpacity: op, color: c, fillColor: c });
+                        zones[z].rect.bindTooltip(`${z}: ${predictedCount} cuốc dự kiến`, { permanent: true, direction: "center" }).openTooltip();
+                    }
+                }
+            } catch (e) {
+                console.error("Heatmap fetch error:", e);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+        // Liên tục quét các chuyến đi thực tế để render lên bản đồ
+        let rideMarkers = {};
+        const carIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3204/3204121.png', iconSize: [30, 30] });
+
+        async function fetchRides() {
+            try {
+                const res = await fetch('/api/rides');
+                const rides = await res.json();
+
+                let html = "";
+                rides.forEach(r => {
+                    html += `
+                    <div class="ride-item">
+                        <div><strong>${r.customerName}</strong> <span class="ai-badge">${r.zone}</span></div>
+                        <div style="font-size: 13px; color: #94a3b8; margin-top: 5px;">Trạng Thái: ${r.status} ${r.status !== 'REQUESTED' ? '(Tx: ' + r.driverId + ')' : ''}</div>
+                        <div class="price">${r.estimatedPrice ? r.estimatedPrice.toLocaleString() + ' VNĐ' : 'Chưa tính giá'} <span style="font-size:11px;color:#cbd5e1">(AI x${r.mlMultiplier || 1})</span></div>
+                    </div>
+                `;
+
+                    // Render marker lên Map
+                    if (r.pickupLat && !rideMarkers[r.id]) {
+                        rideMarkers[r.id] = L.marker([r.pickupLat, r.pickupLng], { icon: carIcon }).addTo(map)
+                            .bindPopup(`Cuốc của: ${r.customerName}`);
+                    }
+                });
+                document.getElementById('ridesContainer').innerHTML = html || '<div style="color: #94a3b8; text-align: center;">Chưa có cuốc xe nào</div>';
+            } catch (e) {
+                console.error("Firebase fetch error", e);
+            }
+        }
+
+        fetchDemandHeatmap(); // Chạy lần đầu
+        setInterval(fetchRides, 3000); // Polling thay cho Realtime listener vì đang dùng JSON REST
+        fetchRides();
+
+    </script>
+
+</body>
+
+</html>

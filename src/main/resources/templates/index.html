@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <title>Khách Hàng | Gọi Xe Thông Minh</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+        }
+
+        /* Premium Glassmorphism UI */
+        .glass-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            color: #1a1a1a;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 15px;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+        }
+
+        .env-toggles {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            color: #555;
+            transition: all 0.2s;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .toggle-btn.active {
+            background: #e0f0ff;
+            border-color: #007bff;
+            color: #007bff;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #fff3cd;
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        #instruction {
+            font-size: 14px;
+            color: #d9534f;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .receipt {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .price {
+            font-size: 24px;
+            font-weight: 800;
+            color: #28a745;
+            text-align: right;
+        }
+
+        .ai-multiplier {
+            font-size: 12px;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            color: white;
+            padding: 4px 8px;
+            display: inline-block;
+        }
+        
+        .btn-cancel {
+            width: 100%;
+            padding: 10px;
+            background: #fff;
+            color: #dc3545;
+            border: 1.5px solid #dc3545;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-cancel:hover {
+            background: #fff5f5;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.1);
+        }
+
+        /* Thêm style cho Popup thông báo */
+        #notification-popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            border: 2px solid #007bff;
+        }
+
+        #notification-popup.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .popup-icon {
+            font-size: 24px;
+            color: #198754;
+        }
+
+        /* Favorites & History */
+        .fav-section { margin-bottom: 14px; }
+        .fav-section-title { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .fav-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .fav-chip {
+            display: flex; align-items: center; gap: 6px;
+            background: #f1f5f9; border: 1.5px solid #e2e8f0;
+            padding: 7px 12px; border-radius: 20px;
+            font-size: 13px; font-weight: 600; color: #475569;
+            cursor: pointer; transition: all 0.2s; position: relative;
+        }
+        .fav-chip:hover { background: #e0f0ff; border-color: #007bff; color: #007bff; }
+        .fav-chip.has-data { border-color: #10b981; color: #059669; background: #f0fdf4; }
+        .fav-chip .fav-del {
+            display: none; margin-left: 4px; color: #ef4444;
+            font-size: 11px; cursor: pointer;
+        }
+        .fav-chip.has-data:hover .fav-del { display: inline; }
+        .btn-add-fav {
+            display: flex; align-items: center; gap: 6px;
+            background: transparent; border: 1.5px dashed #cbd5e1;
+            padding: 7px 12px; border-radius: 20px;
+            font-size: 13px; font-weight: 600; color: #94a3b8;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-add-fav:hover { border-color: #007bff; color: #007bff; background: #f0f7ff; }
+        .ctrl-bar {
+            display: flex; gap: 8px; margin-bottom: 14px; align-items: center;
+        }
+        .btn-reset {
+            flex: 1; padding: 10px; background: #fff;
+            border: 1.5px solid #e2e8f0; border-radius: 10px;
+            font-size: 13px; font-weight: 600; color: #64748b;
+            cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-reset:hover { border-color: #f59e0b; color: #d97706; background: #fffbeb; }
+
+        /* Floating Label Styles for SWAL */
+        .float-container {
+            position: relative;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .float-container input {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            padding: 12px 15px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            color: #1e293b;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+        }
+        .float-container label {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 14px;
+            pointer-events: none;
+            transition: 0.3s;
+        }
+        .float-container input:focus, .float-container input:not(:placeholder-shown) {
+            border-color: #3b82f6;
+            padding-top: 20px;
+            padding-bottom: 4px;
+        }
+        .float-container input:focus + label, .float-container input:not(:placeholder-shown) + label {
+            top: 10px;
+            font-size: 11px;
+            color: #3b82f6;
+        }
+
+        .user-nav {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 10px 18px;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            color: #475569;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            background: #fff;
+            color: #007bff;
+        }
+        .nav-btn.logout:hover { color: #ef4444; }
+        /* History Modal */
+        .history-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+            display: none; justify-content: center; align-items: center; z-index: 10002;
+        }
+        .history-overlay.active { display: flex; }
+        .history-panel {
+            background: white; width: 500px; max-width: 92%;
+            max-height: 80vh; border-radius: 24px; padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+            display: flex; flex-direction: column;
+        }
+        .history-overlay.active .history-panel { transform: translateY(0); }
+        .history-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 14px;
+        }
+        .history-list { overflow-y: auto; flex: 1; }
+        .history-item {
+            border: 1px solid #eee; border-radius: 12px;
+            padding: 14px; margin-bottom: 12px;
+        }
+        .history-date { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+        .history-route { font-weight: 600; font-size: 15px; color: #1e293b; }
+        .history-price { color: #10b981; font-weight: 800; margin-top: 5px; }
+        
+        /* Search & Filter in History */
+        .history-controls {
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 12px;
+        }
+        .history-search-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .history-search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+        .history-search-box input {
+            padding-left: 36px;
+            height: 38px;
+            font-size: 14px;
+        }
+        .history-filters {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+        }
+        .history-filters::-webkit-scrollbar { display: none; }
+        .filter-chip {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            border: 1.5px solid #e2e8f0;
+            color: #64748b;
+            background: #f8fafc;
+            transition: all 0.2s;
+        }
+        .filter-chip.active {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+        
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-completed { background: #d1e7dd; color: #0f5132; }
+        .status-requested { background: #fff3cd; color: #856404; }
+        .status-accepted { background: #cfe2ff; color: #084298; }
+        .status-picked_up { background: #e2e3e5; color: #383d41; }
+        .status-cancelled { background: #f8d7da; color: #842029; }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <!-- Notification Popup -->
+    <div class="user-nav">
+        <a href="#" onclick="openProfile()" class="nav-btn"><i class="fa-solid fa-user-gear"></i> Hồ sơ</a>
+        <a href="#" onclick="openHistory()" class="nav-btn"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</a>
+        <a href="/logout" class="nav-btn logout"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</a>
+    </div>
+
+    <div id="notification-popup">
+        <i class="fa-solid fa-bell popup-icon fa-bounce"></i>
+        <div id="notification-text" style="font-weight: 700; color: #1a1a1a;">Tài xế đã nhận chuyến!</div>
+    </div>
+
+    <div class="glass-panel">
+        <h2><i class="fa-solid fa-car-side"></i> Đặt Xe AI Thông Minh</h2>
+
+        <!-- Favorites Module -->
+        <div class="fav-section">
+            <div class="fav-section-title"><i class="fa-solid fa-star"></i> Địa Điểm Yêu Thích</div>
+            <div class="fav-chips" id="favChipsContainer"></div>
+        </div>
+
+        <!-- Control bar: Reset + User info -->
+        <div class="ctrl-bar">
+            <button class="btn-reset" id="resetBtn" onclick="resetMap()">
+                <i class="fa-solid fa-rotate-left"></i> Chọn Lại Điểm
+            </button>
+            <div style="font-weight:600; color:#333; font-size:13px; white-space:nowrap;">
+                <i class="fa-solid fa-user-circle" style="color:#007bff;"></i>
+                <span th:text="${session.user.username}">user</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <a href="#" onclick="openHistory()" style="color:#007bff; text-decoration:none; font-size:13px; font-weight:bold;">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </a>
+                <a href="/logout" style="color:#dc3545; text-decoration:none; font-size:13px; font-weight:bold;">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </a>
+            </div>
+            <input type="hidden" id="customerName" th:value="${session.user.username}">
+        </div>
+
+        <div id="instruction">📍 Hãy click vào bản đồ để chọn Điểm Đón</div>
+
+        <!-- AI Param Simulators -->
+        <div class="env-toggles">
+            <div class="toggle-btn" id="btnRain" onclick="toggleRain()"><i class="fa-solid fa-cloud-rain"></i> Trời Mưa</div>
+            <div class="toggle-btn" id="btnEvent" onclick="toggleEvent()"><i class="fa-solid fa-music"></i> Nhu Cầu Cao</div>
+        </div>
+
+        <button class="btn-action" id="requestBtn" onclick="requestRide()" disabled style="opacity:0.5;">
+            <i class="fa-solid fa-satellite-dish"></i> Chọn Điểm Đón Trước
+        </button>
+
+        <!-- Receipt shown after request -->
+        <div class="receipt" id="receiptPanel">
+            <div class="status-pill"><i class="fa-solid fa-spinner fa-spin"></i> Đang phân bổ tài xế...</div>
+            <div class="receipt-row"><span>Khu Vực Phân Tích:</span> <strong id="rZone"></strong></div>
+            <div class="receipt-row"><span>Mức Giá Đã Điều Chỉnh:</span> <span class="ai-multiplier" id="rMul"></span></div>
+            <div class="price" id="rPrice">0 VNĐ</div>
+            <button class="btn-cancel" id="cancelRideBtn" onclick="cancelRide()">
+                <i class="fa-solid fa-xmark"></i> Hủy Chuyến Đi
+            </button>
+        </div>
+    </div>
+
+    <!-- NEW: History Modal -->
+    <div class="history-overlay" id="historyModal">
+        <div class="history-panel">
+            <div class="history-header">
+                <h3 style="margin:0; font-size: 18px;"><i class="fa-solid fa-clock-rotate-left"></i> Lịch Sử Chuyến Đi</h3>
+                <button onclick="closeHistory()" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div class="history-controls">
+                <div class="history-search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="historySearchInput" placeholder="Tìm theo Mã chuyến hoặc Khu vực..." oninput="filterHistory()">
+                </div>
+                <div class="history-filters" id="statusFilterContainer">
+                    <div class="filter-chip active" data-status="ALL" onclick="setStatusFilter('ALL')">Tất cả</div>
+                    <div class="filter-chip" data-status="COMPLETED" onclick="setStatusFilter('COMPLETED')">Hoàn thành</div>
+                    <div class="filter-chip" data-status="REQUESTED" onclick="setStatusFilter('REQUESTED')">Đang chờ</div>
+                    <div class="filter-chip" data-status="ACCEPTED" onclick="setStatusFilter('ACCEPTED')">Đã nhận</div>
+                    <div class="filter-chip" data-status="ARRIVED" onclick="setStatusFilter('ARRIVED')">Đã đến</div>
+                    <div class="filter-chip" data-status="PICKED_UP" onclick="setStatusFilter('PICKED_UP')">Đã đón</div>
+                    <div class="filter-chip" data-status="CANCELLED" onclick="setStatusFilter('CANCELLED')">Đã hủy</div>
+                </div>
+            </div>
+
+            <div class="history-list" id="historyListContainer">
+                <div style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ==================== MAP ====================
+        let map = L.map('map').setView([10.762622, 106.660172], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        let pickupMarker = null, dropoffMarker = null, routeLine = null;
+        let isRain = false, isEvent = false;
+        let phase = 1; // 1: pickup, 2: dropoff, 3: ready
+        const pickupIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/3082/3082383.png', iconSize: [40,40], iconAnchor: [20,40] });
+        const dropoffIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/1483/1483336.png', iconSize: [40,40], iconAnchor: [20,40] });
+
+        map.on('click', function(e) {
+            if (phase === 1) {
+                pickupMarker = L.marker(e.latlng, { icon: pickupIcon }).addTo(map).bindPopup("Điểm Đón Của Bạn").openPopup();
+                document.getElementById('instruction').innerHTML = "🏁 Click để chọn Điểm Đến";
+                document.getElementById('requestBtn').innerHTML = "Vui lòng chọn Điểm Đến...";
+                phase = 2;
+            } else if (phase === 2) {
+                dropoffMarker = L.marker(e.latlng, { icon: dropoffIcon }).addTo(map).bindPopup("Điểm Đến").openPopup();
+                document.getElementById('instruction').innerHTML = "✨ Tọa độ sẵn sàng!";
+                document.getElementById('requestBtn').innerHTML = '<i class="fa-solid fa-car"></i> Bắt Đầu Đặt Xe';
+                document.getElementById('requestBtn').disabled = false;
+                document.getElementById('requestBtn').style.opacity = 1;
+                routeLine = L.polyline([pickupMarker.getLatLng(), dropoffMarker.getLatLng()], { color: '#007bff', weight: 4, dashArray: "10,10" }).addTo(map);
+                map.fitBounds(L.latLngBounds(pickupMarker.getLatLng(), dropoffMarker.getLatLng()), { padding: [50,50] });
+                phase = 3;
+            }
+        });
+
+        // ==================== RESET ====================
+        function resetMap() {
+            if (pickupMarker) { map.removeLayer(pickupMarker); pickupMarker = null; }
+            if (dropoffMarker) { map.removeLayer(dropoffMarker); dropoffMarker = null; }
+            if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+            phase = 1;
+            document.getElementById('instruction').innerHTML = "📍 Hãy click vào bản đồ để chọn Điểm Đón";
+            document.getElementById('instruction').style.display = '';
+            const btn = document.getElementById('requestBtn');
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Chọn Điểm Đón Trước';
+            btn.disabled = true; btn.style.opacity = '0.5'; btn.style.display = '';
+            document.getElementById('receiptPanel').style.display = 'none';
+            document.querySelector('#receiptPanel .status-pill').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang phân bổ tài xế...';
+            const oldDriver = document.getElementById('cDriver');
+            if (oldDriver) oldDriver.parentElement.remove();
+            currentRideId = null;
+            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            map.setView([10.762622, 106.660172], 13);
+        }
+
+        // ==================== FAVORITES ====================
+        let cachedFavorites = [];
+
+
+
+        async function fetchFavorites() {
+            try {
+                const res = await fetch('/api/favorites');
+                if (res.ok) {
+                    cachedFavorites = await res.json() || [];
+                } else {
+                    cachedFavorites = [];
+                }
+            } catch (e) {
+                console.error("Error fetching favorites", e);
+                cachedFavorites = [];
+            } finally {
+                renderFavChips();
+            }
+        }
+
+        function renderFavChips() {
+            const container = document.getElementById('favChipsContainer');
+            if (!container) return;
+            let html = '';
+            if (Array.isArray(cachedFavorites)) {
+                cachedFavorites.forEach((fav) => {
+                    html += `<div class="fav-chip has-data" onclick="useFavorite('${fav.id}')">
+                        <i class="fa-solid fa-location-dot"></i> ${fav.name}
+                        <span class="fav-del" onclick="event.stopPropagation(); deleteFavorite('${fav.id}')" title="Xoá">
+                            <i class="fa-solid fa-xmark"></i>
+                        </span>
+                    </div>`;
+                });
+            }
+            html += `<button class="btn-add-fav" onclick="addFavorite()">
+                <i class="fa-solid fa-plus"></i> Thêm địa điểm
+            </button>`;
+            container.innerHTML = html;
+        }
+
+        function useFavorite(id) {
+            const fav = cachedFavorites.find(f => f.id === id);
+            if (!fav) return;
+            
+            // Nếu đã có điểm đón, chỉ đặt điểm đến. Nếu chưa có gì, đặt cả 2 (mặc định lấy tâm bản đồ làm điểm đón)
+            if (!pickupMarker) {
+                const center = map.getCenter();
+                pickupMarker = L.marker(center, { icon: pickupIcon }).addTo(map).bindPopup("Điểm Đón (Mặc định)").openPopup();
+            }
+            
+            // Xoá điểm đến cũ nếu có
+            if (dropoffMarker) { map.removeLayer(dropoffMarker); dropoffMarker = null; }
+            if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+            
+            dropoffMarker = L.marker([fav.lat, fav.lng], { icon: dropoffIcon }).addTo(map).bindPopup(`Đến: ${fav.name}`).openPopup();
+            
+            document.getElementById('instruction').innerHTML = "✨ Đã chọn từ địa điểm yêu thích!";
+            const btn = document.getElementById('requestBtn');
+            btn.innerHTML = '<i class="fa-solid fa-car"></i> Bắt Đầu Đặt Xe';
+            btn.disabled = false;
+            btn.style.opacity = 1;
+            
+            routeLine = L.polyline([pickupMarker.getLatLng(), dropoffMarker.getLatLng()], { color: '#007bff', weight: 4, dashArray: "10,10" }).addTo(map);
+            map.fitBounds(L.latLngBounds(pickupMarker.getLatLng(), dropoffMarker.getLatLng()), { padding: [50,50] });
+            phase = 3;
+
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success',
+                title: `Đã thiết lập lộ trình đến: ${fav.name}`,
+                showConfirmButton: false, timer: 2000, timerProgressBar: true
+            });
+        }
+
+        async function deleteFavorite(id) {
+            const fav = cachedFavorites.find(f => f.id === id);
+            if (!fav) return;
+            const result = await Swal.fire({
+                title: `Xoá "${fav.name}"?`,
+                text: 'Địa điểm này sẽ bị xoá khỏi danh sách yêu thích.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-trash"></i> Xoá',
+                cancelButtonText: 'Huỷ'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        await fetchFavorites();
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã xoá!', showConfirmButton: false, timer: 1500 });
+                    }
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể xoá địa điểm.' });
+                }
+            }
+        }
+
+        async function addFavorite() {
+            if (!pickupMarker && !dropoffMarker) {
+                Swal.fire({
+                    icon: 'info', title: 'Chưa có điểm nào',
+                    text: 'Hãy chọn một điểm trên bản đồ trước khi lưu vào yêu thích.',
+                    confirmButtonColor: '#007bff'
+                });
+                return;
+            }
+            const latlng = dropoffMarker ? dropoffMarker.getLatLng() : pickupMarker.getLatLng();
+            const { value: name } = await Swal.fire({
+                title: '<i class="fa-solid fa-star" style="color:#f59e0b;"></i> Lưu Địa Điểm Yêu Thích',
+                html: `
+                    <input id="swal-name" class="swal2-input" placeholder="Tên địa điểm (VD: Nhà, Công ty...)" maxlength="30">
+                    <div style="margin-top:10px; font-size:13px; color:#64748b; background:#f8fafc; padding:8px; border-radius:8px;">
+                        📌 Tọa độ: ${latlng.lat.toFixed(5)}, ${latlng.lng.toFixed(5)}
+                    </div>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-floppy-disk"></i> Lưu',
+                cancelButtonText: 'Huỷ',
+                confirmButtonColor: '#007bff',
+                preConfirm: () => {
+                    const val = document.getElementById('swal-name').value.trim();
+                    if (!val) { Swal.showValidationMessage('Vui lòng nhập tên địa điểm!'); return false; }
+                    return val;
+                }
+            });
+            
+            if (name) {
+                // Kiểm tra trùng lặp (tên hoặc tọa độ)
+                const isDupName = cachedFavorites.some(f => f.name.toLowerCase() === name.toLowerCase());
+                const isDupPos = cachedFavorites.some(f => 
+                    Math.abs(f.lat - latlng.lat) < 0.00001 && Math.abs(f.lng - latlng.lng) < 0.00001
+                );
+
+                if (isDupName) {
+                    Swal.fire({ icon: 'warning', title: 'Trùng tên', text: 'Tên địa điểm này đã tồn tại trong danh sách!' });
+                    return;
+                }
+                if (isDupPos) {
+                    Swal.fire({ icon: 'warning', title: 'Trùng vị trí', text: 'Vị trí này đã được lưu trong danh sách yêu thích!' });
+                    return;
+                }
+
+                try {
+                    const res = await fetch('/api/favorites', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, lat: latlng.lat, lng: latlng.lng })
+                    });
+                    if (res.ok) {
+                        await fetchFavorites();
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã lưu: ${name}`, showConfirmButton: false, timer: 2000 });
+                    }
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể lưu địa điểm.' });
+                }
+            }
+        }
+
+        // ==================== HISTORY = :===================
+        let cachedRides = [];
+        let currentStatusFilter = 'ALL';
+
+        async function openProfile() {
+            try {
+                const res = await fetch('/api/users/profile');
+                const user = await res.json();
+                
+                const { value: formValues } = await Swal.fire({
+                    title: 'Cập nhật hồ sơ',
+                    html: `
+                        <div class="float-container">
+                            <input id="p-fullname" type="text" value="${user.fullName || ''}" placeholder=" ">
+                            <label>Họ và tên</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="p-email" type="email" value="${user.email || ''}" placeholder=" ">
+                            <label>Email</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="p-phone" type="text" value="${user.phoneNumber || ''}" placeholder=" ">
+                            <label>Số điện thoại</label>
+                        </div>
+                        <div class="float-container">
+                            <input id="p-password" type="password" placeholder=" ">
+                            <label>Mật khẩu mới (Để trống nếu không đổi)</label>
+                        </div>
+                    `,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    confirmButtonText: 'Cập nhật ngay',
+                    cancelButtonText: 'Đóng',
+                    confirmButtonColor: '#007bff',
+                    preConfirm: () => {
+                        return {
+                            fullName: document.getElementById('p-fullname').value,
+                            email: document.getElementById('p-email').value,
+                            phoneNumber: document.getElementById('p-phone').value,
+                            password: document.getElementById('p-password').value
+                        }
+                    }
+                });
+
+                if (formValues) {
+                    const putRes = await fetch('/api/users/profile', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formValues)
+                    });
+                    if (putRes.ok) {
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: 'Hồ sơ của bạn đã được cập nhật!', background: '#fff', color: '#000' });
+                    } else {
+                        Swal.fire('Lỗi', 'Không thể cập nhật hồ sơ.', 'error');
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const name = document.getElementById('customerName').value;
+                const res = await fetch('/api/rides');
+                const allRides = await res.json();
+                
+                // Lọc theo tên khách hàng của session
+                cachedRides = allRides.filter(r => r.customerName === name);
+                
+                renderHistoryList();
+            } catch(e) {
+                console.error("Error loading history", e);
+                document.getElementById('historyListContainer').innerHTML = '<div style="color:red;text-align:center;padding:20px;">Lỗi tải dữ liệu</div>';
+            }
+        }
+
+        function setStatusFilter(status) {
+            currentStatusFilter = status;
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.status === status);
+            });
+            renderHistoryList();
+        }
+
+        function filterHistory() {
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('historyListContainer');
+            const searchQuery = document.getElementById('historySearchInput').value.toLowerCase().trim();
+            
+            let filtered = cachedRides;
+            
+            // 1. Lọc theo trạng thái
+            if (currentStatusFilter !== 'ALL') {
+                filtered = filtered.filter(r => r.status === currentStatusFilter);
+            }
+            
+            // 2. Lọc theo tìm kiếm (ID hoặc Zone)
+            if (searchQuery) {
+                filtered = filtered.filter(r => 
+                    (r.id && r.id.toLowerCase().includes(searchQuery)) || 
+                    (r.zone && r.zone.toLowerCase().includes(searchQuery))
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="text-align:center;color:#94a3b8;padding:40px 0;">
+                    <i class="fa-solid fa-inbox fa-3x" style="margin-bottom:10px; opacity:0.5;"></i><br>
+                    ${cachedRides.length === 0 ? 'Bạn chưa có chuyến đi nào' : 'Không tìm thấy chuyến đi phù hợp'}
+                </div>`;
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(r => {
+                const statusClass = `status-${r.status.toLowerCase()}`;
+                const statusText = getStatusText(r.status);
+                
+                html += `<div class="history-item">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div class="history-route"><i class="fa-solid fa-map-pin" style="color:#007bff;"></i> ${r.zone || 'Khu vực không xác định'}</div>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="history-date">Mã: <small>${r.id}</small></div>
+                    <div class="history-date"><i class="fa-solid fa-user-tie"></i> Tài xế: ${r.driverId || '<i>Chưa có</i>'}</div>
+                    <div class="history-price">
+                        ${r.estimatedPrice ? r.estimatedPrice.toLocaleString() + ' VNĐ' : 'N/A'}
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function getStatusText(status) {
+            const mapping = {
+                'REQUESTED': 'Đang chờ',
+                'ACCEPTED': 'Đã nhận',
+                'ARRIVED': 'Đã đến',
+                'PICKED_UP': 'Đang đi',
+                'COMPLETED': 'Hoàn thành',
+                'CANCELLED': 'Đã hủy'
+            };
+            return mapping[status] || status;
+        }
+
+        function openHistory() {
+            document.getElementById('historyModal').classList.add('active');
+            document.getElementById('historyListContainer').innerHTML = '<div style="text-align:center;padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</div>';
+            loadHistory();
+        }
+        function closeHistory() { document.getElementById('historyModal').classList.remove('active'); }
+
+        // ==================== TOGGLES ====================
+        function toggleRain() { isRain = !isRain; document.getElementById('btnRain').classList.toggle('active'); }
+        function toggleEvent() { isEvent = !isEvent; document.getElementById('btnEvent').classList.toggle('active'); }
+
+        // ==================== BOOKING ====================
+        let currentRideId = null, pollInterval = null;
+
+        async function checkActiveRideOnLoad() {
+            try {
+                const name = document.getElementById('customerName').value;
+                const res = await fetch('/api/rides');
+                const allRides = await res.json();
+                
+                // Tìm đơn hàng chưa kết thúc (không phải COMPLETED hoặc CANCELLED)
+                const activeRide = allRides.find(r => r.customerName === name && r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
+                
+                if (activeRide) {
+                    restoreRideState(activeRide);
+                }
+            } catch (e) {
+                console.error("Error checking active ride", e);
+            }
+        }
+
+        function restoreRideState(ride) {
+            currentRideId = ride.id;
+            
+            // Ẩn các nút điều khiển chính
+            document.getElementById('instruction').style.display = 'none';
+            document.getElementById('requestBtn').style.display = 'none';
+            document.querySelector('.env-toggles').style.display = 'none';
+            
+            // Hiển thị Receipt Panel (Ghim đơn)
+            document.getElementById('receiptPanel').style.display = 'block';
+            document.getElementById('rZone').innerText = ride.zone;
+            document.getElementById('rMul').innerHTML = `<i class="fa-solid fa-robot"></i> Surge x${ride.mlMultiplier.toFixed(1)}`;
+            document.getElementById('rPrice').innerText = ride.estimatedPrice.toLocaleString() + " VNĐ";
+            
+            updateCustomerStatusUI(ride);
+            
+            // Vẽ lại marker trên bản đồ
+            if (ride.pickupLat && ride.pickupLng) {
+                pickupMarker = L.marker([ride.pickupLat, ride.pickupLng], { icon: pickupIcon }).addTo(map).bindPopup("Điểm Đón").openPopup();
+                dropoffMarker = L.marker([ride.dropoffLat, ride.dropoffLng], { icon: dropoffIcon }).addTo(map).bindPopup("Điểm Đến");
+                routeLine = L.polyline([pickupMarker.getLatLng(), dropoffMarker.getLatLng()], { color: '#007bff', weight: 4, dashArray: "10,10" }).addTo(map);
+                map.fitBounds(L.latLngBounds(pickupMarker.getLatLng(), dropoffMarker.getLatLng()), { padding: [50,50] });
+            }
+
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(checkRideStatus, 2000);
+            
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'info',
+                title: 'Đang theo dõi chuyến đi hiện tại',
+                showConfirmButton: false, timer: 3000
+            });
+        }
+
+        async function cancelRide() {
+            if (!currentRideId) return;
+            
+            const result = await Swal.fire({
+                title: 'Hủy chuyến đi?',
+                text: "Bạn có chắc chắn muốn hủy chuyến đi này không?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Đúng, hủy chuyến!',
+                cancelButtonText: 'Không, giữ lại'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const res = await fetch(`/api/rides/${currentRideId}/status?status=CANCELLED`, { method: 'POST' });
+                    if (res.ok) {
+                        Swal.fire({
+                            icon: 'success', title: 'Đã hủy chuyến!',
+                            text: 'Chuyến đi của bạn đã được hủy thành công.',
+                            confirmButtonColor: '#007bff'
+                        }).then(() => window.location.reload());
+                    }
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể hủy chuyến đi lúc này.' });
+                }
+            }
+        }
+
+        async function requestRide() {
+            const name = document.getElementById('customerName').value;
+            if (!name) return;
+            
+            // Kiểm tra xem đã có đơn đang chạy chưa
+            if (currentRideId) {
+                Swal.fire({ icon: 'warning', title: 'Đang có chuyến đi!', text: 'Bạn chỉ có thể đặt 1 chuyến tại một thời điểm.' });
+                return;
+            }
+
+            const btn = document.getElementById('requestBtn');
+            btn.disabled = true; btn.style.opacity = '0.7';
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Gọi AI Dự Báo Giá...';
+            const pUrl = `/api/rides/request?customerName=${encodeURIComponent(name)}`
+                + `&pickupLat=${pickupMarker.getLatLng().lat}&pickupLng=${pickupMarker.getLatLng().lng}`
+                + `&dropoffLat=${dropoffMarker.getLatLng().lat}&dropoffLng=${dropoffMarker.getLatLng().lng}`
+                + `&isRain=${isRain}&isEvent=${isEvent}`;
+            try {
+                const res = await fetch(pUrl, { method: 'POST' });
+                if (!res.ok) throw new Error("Server error");
+                const data = await res.json();
+                
+                // Giả lập độ trễ AI một chút để user thấy loading cho xịn
+                await new Promise(r => setTimeout(r, 1000));
+                
+                currentRideId = data.id;
+                btn.style.display = 'none';
+                document.getElementById('instruction').style.display = 'none';
+                document.querySelector('.env-toggles').style.display = 'none';
+                document.getElementById('receiptPanel').style.display = 'block';
+                document.getElementById('rZone').innerText = data.zone;
+                document.getElementById('rMul').innerHTML = `<i class="fa-solid fa-robot"></i> Surge x${data.mlMultiplier.toFixed(1)}`;
+                document.getElementById('rPrice').innerText = data.estimatedPrice.toLocaleString() + " VNĐ";
+                updateCustomerStatusUI(data);
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(checkRideStatus, 2000);
+            } catch(err) {
+                console.error(err);
+                Swal.fire({ icon: 'error', title: 'Lỗi kết nối!', text: 'Không thể kết nối đến hệ thống Server / Firebase.', confirmButtonColor: '#007bff' });
+                btn.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Thử Lại';
+                btn.disabled = false; btn.style.opacity = '1';
+            }
+        }
+
+        let isAcceptedPopupShown = false;
+
+        async function checkRideStatus() {
+            if (!currentRideId) return;
+            try {
+                const res = await fetch(`/api/rides/${currentRideId}`);
+                const data = await res.json();
+                updateCustomerStatusUI(data);
+                if (data.status === 'COMPLETED' || data.status === 'CANCELLED') {
+                    clearInterval(pollInterval);
+                    const isCompleted = data.status === 'COMPLETED';
+                    setTimeout(() => {
+                        Swal.fire({
+                            icon: isCompleted ? 'success' : 'info', 
+                            title: isCompleted ? 'Hoàn thành chuyến đi! 🎉' : 'Đã hủy chuyến đi',
+                            text: isCompleted ? 'Cảm ơn bạn đã sử dụng dịch vụ.' : 'Hẹn gặp lại bạn lần sau.',
+                            confirmButtonColor: '#10b981', confirmButtonText: 'Đóng'
+                        }).then(() => window.location.reload());
+                    }, 2000);
+                }
+            } catch(e) {}
+        }
+
+        function showNotification(text) {
+            const popup = document.getElementById('notification-popup');
+            document.getElementById('notification-text').innerText = text;
+            popup.classList.add('show');
+            setTimeout(() => popup.classList.remove('show'), 5000);
+        }
+
+        function updateCustomerStatusUI(ride) {
+            let msg = '', icon = '';
+            if (ride.status === 'REQUESTED') { msg = 'Đang tìm tài xế...'; icon = 'fa-spinner fa-spin'; isAcceptedPopupShown = false; }
+            else if (ride.status === 'ACCEPTED') {
+                msg = 'Tài xế đang đến đón...'; icon = 'fa-car-side fa-fade';
+                document.querySelector('.status-pill').style.background = '#e2e3e5';
+                document.querySelector('.status-pill').style.color = '#383d41';
+                if (!isAcceptedPopupShown) { showNotification(`Tài xế ${ride.driverId||''} đã nhận chuyến!`); isAcceptedPopupShown = true; }
+            } else if (ride.status === 'ARRIVED') {
+                msg = 'Tài xế ĐÃ ĐẾN!'; icon = 'fa-bullhorn fa-beat';
+                document.querySelector('.status-pill').style.background = '#d1e7dd';
+                document.querySelector('.status-pill').style.color = '#0f5132';
+            } else if (ride.status === 'PICKED_UP') {
+                msg = 'Đang di chuyển...'; icon = 'fa-road';
+                document.querySelector('.status-pill').style.background = '#cfe2ff';
+                document.querySelector('.status-pill').style.color = '#084298';
+            } else if (ride.status === 'COMPLETED') {
+                msg = 'Hoàn thành!'; icon = 'fa-check-circle';
+                document.querySelector('.status-pill').style.background = '#cff4fc';
+                document.querySelector('.status-pill').style.color = '#055160';
+            } else if (ride.status === 'CANCELLED') {
+                msg = 'Đã hủy'; icon = 'fa-ban';
+                document.querySelector('.status-pill').style.background = '#f8d7da';
+                document.querySelector('.status-pill').style.color = '#842029';
+            } else { msg = 'Đang cập nhật...'; icon = 'fa-circle'; }
+            
+            document.querySelector('.status-pill').innerHTML = `<i class="fa-solid ${icon}"></i> <strong>${msg}</strong>`;
+            
+            // Ẩn nút hủy nếu đã bắt đầu chuyến đi hoặc đã kết thúc
+            const cancelBtn = document.getElementById('cancelRideBtn');
+            if (cancelBtn) {
+                if (['PICKED_UP', 'COMPLETED', 'CANCELLED'].includes(ride.status)) {
+                    cancelBtn.style.display = 'none';
+                } else {
+                    cancelBtn.style.display = 'flex';
+                }
+            }
+
+            if (ride.driverId && !document.getElementById('cDriver')) {
+                const drvRow = document.createElement('div');
+                drvRow.className = 'receipt-row';
+                drvRow.innerHTML = `<span>Tài xế nhận chuyến:</span> <strong id="cDriver">${ride.driverId}</strong>`;
+                document.getElementById('receiptPanel').insertBefore(drvRow, document.querySelector('.price'));
+            }
+        }
+
+        // Init
+        renderFavChips(); // Render immediately (shows "Add" button)
+        fetchFavorites(); // Then update from server
+        checkActiveRideOnLoad(); // Kiểm tra đơn hàng đang hoạt động
+    </script>
+
+
+
+</body>
+
+</html>
